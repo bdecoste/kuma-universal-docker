@@ -1,0 +1,15 @@
+type: Dataplane
+mesh: default
+name: universal-dp-3
+networking:
+  address: 172.24.0.10
+  outbound:
+    - port: 10000
+      tags:
+        kuma.io/service: echo-service_default_svc_8080
+  inbound:
+    - port: 8081
+      servicePort: 80
+      tags:
+        kuma.io/service: echo-service_default_svc_8080
+        kuma.io/protocol: http

@@ -1,0 +1,133 @@
+version: '3'
+services:
+  kuma-control-plane:
+    image: kong/kuma-cp:1.3.1
+    environment:
+    - KMESH_LICENSE_PATH=/license.json
+    - KUMA_MODE=zone
+    - KUMA_MULTIZONE_ZONE_NAME=universal-3
+    - KUMA_MULTIZONE_ZONE_GLOBAL_ADDRESS=grpcs://a3528c902347647a3867927ede5d4221-170331957.us-east-2.elb.amazonaws.com:5685
+    - KUMA_DNS_SERVER_PORT=53
+    - KUMA_GENERAL_TLS_KEY_FILE=/ip-172-31-30-10.us-east-2.compute.internal.key
+    - KUMA_DP_SERVER_TLS_KEY_FILE=/ip-172-31-30-10.us-east-2.compute.internal.key
+    - KUMA_API_SERVER_AUTH_CLIENT_CERTS_DIR=/
+    - KUMA_GENERAL_TLS_CERT_FILE=/ip-172-31-30-10.us-east-2.compute.internal.crt
+    - KUMA_DP_SERVER_TLS_CERT_FILE=/ip-172-31-30-10.us-east-2.compute.internal.crt
+    working_dir: /
+    command:
+    - "run"
+    - "--license-path=/license.json"
+    volumes:
+    - /home/ec2-user/dataplane.yaml:/dataplane.yaml
+    - /home/ec2-user/kumactl:/kumactl
+    - ./license.json:/license.json
+    - /home/ec2-user/ip-172-31-30-10.us-east-2.compute.internal.key:/ip-172-31-30-10.us-east-2.compute.internal.key
+    - /home/ec2-user/ip-172-31-30-10.us-east-2.compute.internal.crt:/ip-172-31-30-10.us-east-2.compute.internal.crt
+    - /home/ec2-user/myCA.pem:/myCA.pem
+    expose:
+    - "5678"
+    - "5680"
+    - "5681"
+    - "5682"
+    ports:
+    - "5678:5678"
+    - "5680:5680"
+    - "5681:5681"
+    - "5682:5682"
+    networks:
+      kuma-example: {}
+
+  kuma-example-app-sidecar:
+    image: kong/kuma-dp:1.3.1
+    environment:
+    - KUMA_GENERAL_TLS_KEY_FILE=/ip-172-31-30-10.us-east-2.compute.internal.key
+    - KUMA_DNS_SERVER_PORT=53
+    - KUMA_DNS_SERVER_CIDR=240.0.0.0/4
+    - KUMA_DP_SERVER_TLS_KEY_FILE=/ip-172-31-30-10.us-east-2.compute.internal.key
+    - KUMA_API_SERVER_AUTH_CLIENT_CERTS_DIR=/home/ec2-user
+    - KUMA_DNS_SERVER_DOMAIN=mesh
+    - KUMA_GENERAL_TLS_CERT_FILE=/ip-172-31-30-10.us-east-2.compute.internal.crt
+    - KUMA_DP_SERVER_TLS_CERT_FILE=/ip-172-31-30-10.us-east-2.compute.internal.crt
+    - KUMA_DATAPLANE_ADMIN_PORT=9901
+    - KUMA_DATAPLANE_MESH=default
+    - KUMA_DATAPLANE_NAME=universal-dp-3
+    working_dir: /
+    command:
+    - "run"
+    - "--cp-address=https://ip-172-31-30-10.us-east-2.compute.internal:5678/"
+    - "--dataplane-token-file=/token"
+    - "--ca-cert-file=/myCA.pem"
+    volumes:
+    - /home/ec2-user/kumactl:/kumactl
+    - /home/ec2-user/token:/token
+    - /home/ec2-user/dataplane.yaml:/dataplane.yaml
+    - /home/ec2-user/ip-172-31-30-10.us-east-2.compute.internal.key:/ip-172-31-30-10.us-east-2.compute.internal.key
+    - /home/ec2-user/ip-172-31-30-10.us-east-2.compute.internal.crt:/ip-172-31-30-10.us-east-2.compute.internal.crt
+    - /home/ec2-user/myCA.pem:/myCA.pem
+    depends_on:
+    - kuma-example-app
+    network_mode: "service:kuma-example-app"
+
+  kuma-example-app:
+    image: kennethreitz/httpbin
+    depends_on:
+    - kuma-control-plane
+    networks:
+      kuma-example: {}
+    expose:
+    - "8000"
+    - "10000"
+    ports:
+    - "8000:8000"
+    - "10000:10000"
+
+  kuma-example-client:
+    image: docker.io/kumahq/curl
+    command:
+    - nc
+    - -lk
+    - -s
+    - 127.0.0.1
+    - -p
+    - "3000"
+    - -e
+    - curl
+    - --silent
+    - --show-error
+    - --include
+    - --fail
+    - http://kuma-example-app:8000/
+    networks:
+      kuma-example: {}
+
+  kuma-example-installer:
+    # image name must be provided via environment variable KUMACTL_DOCKER_IMAGE
+    image: kong/kumactl:1.3.1
+    networks:
+      kuma-example: {}
+    volumes:
+    - ./kuma-example-installer.sh:/kuma-example/kuma-example-installer.sh
+    - /home/ec2-user/ip-172-31-30-10.us-east-2.compute.internal.key:/ip-172-31-30-10.us-east-2.compute.internal.key
+    - /home/ec2-user/ip-172-31-30-10.us-east-2.compute.internal.crt:/ip-172-31-30-10.us-east-2.compute.internal.crt
+    - /home/ec2-user/myCA.pem:/myCA.pem
+    command:
+    - /kuma-example/kuma-example-installer.sh
+    depends_on:
+      - kuma-control-plane
+
+  kumactl:
+    # image name must be provided via environment variable KUMACTL_DOCKER_IMAGE
+    image: kong/kumactl:1.3.1
+    volumes:
+    - ./policies:/kuma-example/policies
+    command:
+    - sh
+    - -c
+    - kumactl config control-planes add --name universal-3 --address http://ip-172-31-30-10.us-east-2.compute.internal:5681 --overwrite && sleep infinity
+    networks:
+      kuma-example: {}
+    depends_on:
+      - kuma-control-plane
+
+networks:
+  kuma-example: {}

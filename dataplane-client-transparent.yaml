@@ -1,0 +1,11 @@
+type: Dataplane
+mesh: default
+name: universal-client
+networking:
+  address: 172.24.0.11
+  gateway:
+    tags:
+      kuma.io/service: client
+  transparentProxying:
+    redirectPortInbound: 15006
+    redirectPortOutbound: 15001

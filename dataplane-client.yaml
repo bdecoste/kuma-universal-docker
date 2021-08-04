@@ -1,0 +1,12 @@
+type: Dataplane
+mesh: default
+name: universal-client
+networking:
+  address: 172.24.0.11
+  gateway:
+    tags:
+      kuma.io/service: client
+  outbound:
+    - port: 10000
+      tags:
+        kuma.io/service: echo-service_default_svc_8080
