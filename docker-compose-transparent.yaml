@@ -89,7 +89,7 @@ services:
     command:
     - "run"
     - "--cp-address=https://172.24.0.2:5678/"
-    - "--dataplane-token-file=/token-client"
+    - "--dataplane-token-file=/token"
     - "--ca-cert-file=/myCA.pem"
     - "--dataplane-file=/dataplane.yaml"
     - "--log-level=info"
@@ -98,7 +98,7 @@ services:
     - "--opa-enabled=false"
     volumes:
     - /home/ec2-user/kong-mesh-1.3.3/bin/kumactl:/kumactl
-    - /home/ec2-user/token-client:/token-client
+    - /home/ec2-user/token-client:/token
     - /home/ec2-user/dataplane-client-transparent.yaml:/dataplane.yaml
     - /home/ec2-user/ip-172-31-30-10.us-east-2.compute.internal.key:/ip-172-31-30-10.us-east-2.compute.internal.key
     - /home/ec2-user/ip-172-31-30-10.us-east-2.compute.internal.crt:/ip-172-31-30-10.us-east-2.compute.internal.crt
@@ -204,7 +204,7 @@ services:
       - "KONG_ADMIN_ACCESS_LOG=/dev/stdout"
       - "KONG_PROXY_ERROR_LOG=/dev/stderr"
       - "KONG_ADMIN_ERROR_LOG=/dev/stderr"
-      - "KONG_ADMIN_LISTEN=0.0.0.0:8001"
+      - "KONG_ADMIN_LISTEN=localhost:8001"
       - "KONG_ADMIN_GUI_URL=http://172.24.0.13:8002"
     ports:
       - '8000:8000'
@@ -238,7 +238,7 @@ services:
     command:
     - "run"
     - "--cp-address=https://172.24.0.2:5678/"
-    - "--dataplane-token-file=/token-client"
+    - "--dataplane-token-file=/token"
     - "--ca-cert-file=/myCA.pem"
     - "--dataplane-file=/dataplane.yaml"
     - "--log-level=info"
@@ -247,7 +247,7 @@ services:
     - "--opa-enabled=false"
     volumes:
     - /home/ec2-user/kong-mesh-1.3.3/bin/kumactl:/kumactl
-    - /home/ec2-user/token-client:/token-client
+    - /home/ec2-user/token-gateway:/token
     - /home/ec2-user/dataplane-gateway.yaml:/dataplane.yaml
     - /home/ec2-user/ip-172-31-30-10.us-east-2.compute.internal.key:/ip-172-31-30-10.us-east-2.compute.internal.key
     - /home/ec2-user/ip-172-31-30-10.us-east-2.compute.internal.crt:/ip-172-31-30-10.us-east-2.compute.internal.crt

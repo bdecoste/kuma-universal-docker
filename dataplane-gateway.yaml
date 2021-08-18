@@ -2,7 +2,7 @@ type: Dataplane
 mesh: default
 name: universal-gateway
 networking:
-  address: 172.24.0.12
+  address: 172.24.0.13
   gateway:
     tags:
       kuma.io/service: gateway
