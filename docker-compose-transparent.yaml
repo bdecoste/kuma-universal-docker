@@ -18,7 +18,6 @@ services:
     - "run"
     - "--license-path=/license.json"
     volumes:
-    - /home/ec2-user/kong-mesh-1.3.3/bin/kumactl:/kumactl
     - ./license.json:/license.json
     - /home/ec2-user/ip-172-31-30-10.us-east-2.compute.internal.key:/ip-172-31-30-10.us-east-2.compute.internal.key
     - /home/ec2-user/ip-172-31-30-10.us-east-2.compute.internal.crt:/ip-172-31-30-10.us-east-2.compute.internal.crt
@@ -63,7 +62,6 @@ services:
     - "--dns-coredns-path=/kong-mesh-1.3.3/bin"
     - "--opa-enabled=false"
     volumes:
-    - /home/ec2-user/kong-mesh-1.3.3/bin/kumactl:/kumactl
     - /home/ec2-user/token:/token
     - /home/ec2-user/dataplane.yaml:/dataplane.yaml
     - /home/ec2-user/ip-172-31-30-10.us-east-2.compute.internal.key:/ip-172-31-30-10.us-east-2.compute.internal.key
@@ -97,7 +95,6 @@ services:
     - "--dns-coredns-path=/kong-mesh-1.3.3/bin"
     - "--opa-enabled=false"
     volumes:
-    - /home/ec2-user/kong-mesh-1.3.3/bin/kumactl:/kumactl
     - /home/ec2-user/token-client:/token
     - /home/ec2-user/dataplane-client-transparent.yaml:/dataplane.yaml
     - /home/ec2-user/ip-172-31-30-10.us-east-2.compute.internal.key:/ip-172-31-30-10.us-east-2.compute.internal.key
@@ -128,12 +125,26 @@ services:
     command:
     - sh
     - -c
-    - /kong-mesh-1.3.3/bin/kumactl install transparent-proxy --skip-resolv-conf --redirect-all-dns-traffic  --redirect-outbound-port 15001 --redirect-inbound=true --redirect-inbound-port 15006 --redirect-inbound-port-v6 15010 —redirect-dns-upstream-target-chain DOCKER_OUTPUT --kuma-dp-user kuma-dp && sleep infinity
+    - sleep infinity
     depends_on:
     - kuma-control-plane
     networks:
       kuma-example:
         ipv4_address: 172.24.0.11
+
+  client-init:
+    image: bdecoste/tools:iptables-transparent
+    cap_add:
+      - NET_ADMIN
+      - CAP_SYS_ADMIN
+    command:
+    - sh
+    - -c
+    - /kong-mesh-1.3.3/bin/kumactl install transparent-proxy --skip-resolv-conf --redirect-all-dns-traffic  --redirect-outbound-port 15001 --redirect-inbound=true --redirect-inbound-port 15006 --redirect-inbound-port-v6 15010 —redirect-dns-upstream-target-chain DOCKER_OUTPUT --kuma-dp-user kuma-dp
+    network_mode: "service:kuma-example-client"
+    depends_on:
+      - kuma-example-client
+      - kuma-example-client-sidecar
 
   kuma-example-installer:
     image: kong/kumactl:1.3.3
@@ -253,6 +264,20 @@ services:
     - /home/ec2-user/ip-172-31-30-10.us-east-2.compute.internal.crt:/ip-172-31-30-10.us-east-2.compute.internal.crt
     - /home/ec2-user/myCA.pem:/myCA.pem
     network_mode: "service:gateway"
+
+  gateway-init:
+    image: bdecoste/tools:iptables-transparent
+    cap_add:
+      - NET_ADMIN
+      - CAP_SYS_ADMIN
+    command:
+    - sh
+    - -c
+    - /kong-mesh-1.3.3/bin/kumactl install transparent-proxy --skip-resolv-conf --redirect-all-dns-traffic  --redirect-outbound-port 15001 --redirect-inbound=true --redirect-inbound-port 15006 --redirect-inbound-port-v6 15010 —redirect-dns-upstream-target-chain DOCKER_OUTPUT --kuma-dp-user kuma-dp
+    network_mode: "service:gateway"
+    depends_on:
+      - gateway
+      - gateway-sidecar
 
 networks:
   kuma-example: 
