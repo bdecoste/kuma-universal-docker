@@ -167,17 +167,94 @@ services:
   postgres:
     image: postgres:10.5
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_USER=kong
+      - POSTGRES_PASSWORD=kong
+      - POSTGRES_DB=kong
     logging:
       options:
         max-size: 10m
         max-file: "3"
     ports:
-      - '5438:5432'
+      - '5432:5432'
     networks:
       kuma-example:
         ipv4_address: 172.24.0.12
+
+  migration:
+    image: kong/kong-gateway:2.5.0.0-alpine
+    command:
+      - kong
+      - migrations
+      - bootstrap
+    environment:
+      - "KONG_DATABASE=postgres"
+      - "KONG_PG_HOST=172.24.0.12"
+      - "KONG_PG_PASSWORD=kong"
+      - "KONG_PASSWORD=kong"
+    depends_on:
+      - postgres
+    networks:
+      kuma-example: {}
+
+  gateway:
+    image: kong/kong-gateway:2.5.0.0-alpine
+    environment:
+      - "KONG_DATABASE=postgres"
+      - "KONG_PG_HOST=172.24.0.12"
+      - "KONG_PG_PASSWORD=kong"
+      - "KONG_PROXY_ACCESS_LOG=/dev/stdout"
+      - "KONG_ADMIN_ACCESS_LOG=/dev/stdout"
+      - "KONG_PROXY_ERROR_LOG=/dev/stderr"
+      - "KONG_ADMIN_ERROR_LOG=/dev/stderr"
+      - "KONG_ADMIN_LISTEN=0.0.0.0:8001"
+      - "KONG_ADMIN_GUI_URL=http://172.24.0.13:8002"
+    ports:
+      - '8000:8000'
+      - '8443:8443'
+      - '8001:8001'
+      - '8444:8444'
+      - '8002:8002'
+      - '8445:8445'
+      - '8003:8003'
+      - '8004:8004'
+    networks:
+      kuma-example:
+        ipv4_address: 172.24.0.13
+    depends_on:
+      migration:
+        condition: service_completed_successfully
+
+  gateway-sidecar:
+    image: kong/kuma-dp:1.3.3
+    environment:
+    - KUMA_GENERAL_TLS_KEY_FILE=/ip-172-31-30-10.us-east-2.compute.internal.key
+    - KUMA_DNS_SERVER_PORT=53
+    - KUMA_DNS_SERVER_CIDR=240.0.0.0/4
+    - KUMA_DP_SERVER_TLS_KEY_FILE=/ip-172-31-30-10.us-east-2.compute.internal.key
+    - KUMA_API_SERVER_AUTH_CLIENT_CERTS_DIR=/home/ec2-user
+    - KUMA_DNS_SERVER_DOMAIN=mesh
+    - KUMA_GENERAL_TLS_CERT_FILE=/ip-172-31-30-10.us-east-2.compute.internal.crt
+    - KUMA_DP_SERVER_TLS_CERT_FILE=/ip-172-31-30-10.us-east-2.compute.internal.crt
+    - KUMA_DATAPLANE_ADMIN_PORT=9901
+    working_dir: /
+    command:
+    - "run"
+    - "--cp-address=https://172.24.0.2:5678/"
+    - "--dataplane-token-file=/token-client"
+    - "--ca-cert-file=/myCA.pem"
+    - "--dataplane-file=/dataplane.yaml"
+    - "--log-level=info"
+    - "--dns-enabled"
+    - "--dns-coredns-path=/kong-mesh-1.3.3/bin"
+    - "--opa-enabled=false"
+    volumes:
+    - /home/ec2-user/kong-mesh-1.3.3/bin/kumactl:/kumactl
+    - /home/ec2-user/token-client:/token-client
+    - /home/ec2-user/dataplane-gateway.yaml:/dataplane.yaml
+    - /home/ec2-user/ip-172-31-30-10.us-east-2.compute.internal.key:/ip-172-31-30-10.us-east-2.compute.internal.key
+    - /home/ec2-user/ip-172-31-30-10.us-east-2.compute.internal.crt:/ip-172-31-30-10.us-east-2.compute.internal.crt
+    - /home/ec2-user/myCA.pem:/myCA.pem
+    network_mode: "service:gateway"
 
 networks:
   kuma-example: 
