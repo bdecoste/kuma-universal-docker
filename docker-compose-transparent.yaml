@@ -5,7 +5,7 @@ services:
     environment:
     - KMESH_LICENSE_PATH=/license.json
     - KUMA_MODE=zone
-    - KUMA_MULTIZONE_ZONE_NAME=universal-3
+    - KUMA_MULTIZONE_ZONE_NAME=universal-container-1
     - KUMA_MULTIZONE_ZONE_GLOBAL_ADDRESS=grpcs://a3528c902347647a3867927ede5d4221-170331957.us-east-2.elb.amazonaws.com:5685
     - KUMA_DNS_SERVER_PORT=53
     - KUMA_GENERAL_TLS_KEY_FILE=/ip-172-31-30-10.us-east-2.compute.internal.key
@@ -140,7 +140,7 @@ services:
     command:
     - sh
     - -c
-    - /kong-mesh-1.3.3/bin/kumactl install transparent-proxy --skip-resolv-conf --redirect-all-dns-traffic  --redirect-outbound-port 15001 --redirect-inbound=true --redirect-inbound-port 15006 --redirect-inbound-port-v6 15010 —redirect-dns-upstream-target-chain DOCKER_OUTPUT --kuma-dp-user kuma-dp
+    - /kong-mesh-1.3.3/bin/kumactl install transparent-proxy --skip-resolv-conf --redirect-all-dns-traffic  --redirect-outbound-port 15001 --redirect-inbound=true --redirect-inbound-port 15006 --redirect-inbound-port-v6 15010 --kuma-dp-user kuma-dp
     network_mode: "service:kuma-example-client"
     depends_on:
       - kuma-example-client
@@ -274,7 +274,7 @@ services:
     command:
     - sh
     - -c
-    - /kong-mesh-1.3.3/bin/kumactl install transparent-proxy --skip-resolv-conf --redirect-all-dns-traffic  --redirect-outbound-port 15001 --redirect-inbound=true --redirect-inbound-port 15006 --redirect-inbound-port-v6 15010 —redirect-dns-upstream-target-chain DOCKER_OUTPUT --kuma-dp-user kuma-dp
+    - /kong-mesh-1.3.3/bin/kumactl install transparent-proxy --skip-resolv-conf --redirect-all-dns-traffic  --redirect-outbound-port 15001 --redirect-inbound=true --redirect-inbound-port 15006 --redirect-inbound-port-v6 15010 --kuma-dp-user kuma-dp
     network_mode: "service:gateway"
     depends_on:
       - gateway
